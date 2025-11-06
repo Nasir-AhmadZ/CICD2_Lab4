@@ -141,3 +141,13 @@ def delete_user(user_id: int, db: Session = Depends(get_db)) -> Response:
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+@app.put("/api/users/{user_id}", response_model=UserRead)
+def update_user(user_id: int, payload: UserCreate, db: Session = Depends(get_db)):
+    user = db.get(UserDB, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    for key, value in payload.model_dump().items():
+        setattr(user, key, value)
+    commit_or_rollback(db, "Update failed - possible duplicate email or student ID")
+    db.refresh(user)
+    return user
