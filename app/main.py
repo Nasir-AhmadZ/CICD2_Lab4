@@ -77,6 +77,22 @@ def get_project_with_owner(project_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     return proj
 
+@app.put("/api/projects/{project_id}", response_model=ProjectRead)
+def update_project(project_id: int, payload: ProjectCreate, db: Session = Depends(get_db)):
+    proj = db.get(ProjectDB, project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    user = db.get(UserDB, payload.owner_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    for key, value in payload.model_dump().items():
+        setattr(proj, key, value)
+    commit_or_rollback(db, "Update failed - possible invalid owner_id")
+    db.refresh(proj)
+    return proj
+
 #Nested Routes
 @app.get("/api/users/{user_id}/projects", response_model=list[ProjectRead])
 def get_user_projects(user_id: int, db: Session = Depends(get_db)):
