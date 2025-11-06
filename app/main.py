@@ -1,14 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from .database import engine, SessionLocal
 from .models import Base, UserDB, CourseDB, ProjectDB
 from .schemas import (
-    UserCreate, UserRead,
+    UserCreate, UserRead, UserPATCH,
     CourseCreate, CourseRead,
-    ProjectCreate, ProjectRead,
+    ProjectCreate, ProjectRead, ProjectPATCH,
     ProjectReadWithOwner, ProjectCreateForUser
     )
 
@@ -93,6 +93,21 @@ def update_project(project_id: int, payload: ProjectCreate, db: Session = Depend
     db.refresh(proj)
     return proj
 
+@app.patch("/api/projects/{proj_id}", response_model=ProjectPATCH, status_code=status.HTTP_201_CREATED)
+def patch_proj(proj_id: int, payload: ProjectPATCH, db: Session = Depends(get_db)):
+    projID = db.get(ProjectDB, proj_id)
+    if not projID:
+        raise HTTPException(status_code=404, detail="User not found")
+    proj_details = payload.model_dump(exclude_unset=True)
+    try:
+        stmt = update(ProjectDB).where(ProjectDB.id == proj_id).values(**proj_details)
+        db.execute(stmt)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="User already exists")
+    return proj_details
+
 #Nested Routes
 @app.get("/api/users/{user_id}/projects", response_model=list[ProjectRead])
 def get_user_projects(user_id: int, db: Session = Depends(get_db)):
@@ -157,6 +172,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)) -> Response:
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
+#update user info
 @app.put("/api/users/{user_id}", response_model=UserRead)
 def update_user(user_id: int, payload: UserCreate, db: Session = Depends(get_db)):
     user = db.get(UserDB, user_id)
@@ -167,3 +183,19 @@ def update_user(user_id: int, payload: UserCreate, db: Session = Depends(get_db)
     commit_or_rollback(db, "Update failed - possible duplicate email or student ID")
     db.refresh(user)
     return user
+
+#patch user info
+@app.patch("/api/users/{user_id}", response_model=UserPATCH, status_code=status.HTTP_201_CREATED)
+def patch_user(user_id: int, payload: UserPATCH, db: Session = Depends(get_db)):
+    user_details = payload.model_dump(exclude_unset=True)
+    userID = db.get(UserDB, user_id)
+    if not userID:
+        raise HTTPException(status_code=404, detail="No new details")
+    try:
+        stmt = update(UserDB).where(UserDB.id == user_id).values(**user_details)
+        db.execute(stmt)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="User already exists")
+    return user_details

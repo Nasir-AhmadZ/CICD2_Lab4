@@ -23,7 +23,7 @@ def client():
         app.dependency_overrides[get_db] = override_get_db
         with TestClient(app) as c:
         # hand the client to the test
-        yield c
+            yield c
         # --- teardown happens when the 'with' block exits ---
 
 
@@ -31,3 +31,6 @@ def test_create_user(client):
     r = client.post("/api/users",
 json={"name":"Paul","email":"pl@atu.ie","age":25,"student_id":"S1234567"})
     assert r.status_code == 201
+
+def test_put_user(client):
+    r = client.post("/api/users",json={"name":"Anna","email":"user@email.com","age":22,"student_id":"S7654321"})
