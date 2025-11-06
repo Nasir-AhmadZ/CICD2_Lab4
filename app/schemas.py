@@ -28,6 +28,13 @@ class UserRead(BaseModel):
     age: AgeInt
     student_id: StudentIdStr
 
+class UserPATCH(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: Optional[NameStr] = None
+    email: Optional[EmailStr] = None
+    age: Optional[AgeInt] = None
+    student_id: Optional[StudentIdStr] = None
+
 # Optionally return users with their projects
 class ProjectRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -38,6 +45,12 @@ class ProjectRead(BaseModel):
 
 class UserReadWithProjects(UserRead):
     projects: List[ProjectRead] = []
+
+class ProjectPATCH(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: Optional[ProjectNameStr] = None
+    description: Optional[DescStr] = None
+    owner_id: Optional[int] = None
 
 # ---------- Projects ----------
 # Flat route: POST /api/projects (owner_id in body)
